@@ -1,0 +1,46 @@
+#### gcc
+
+- 简单编译
+
+  gcc  test.c  -o  test
+
+  gcc  -O1  main.c  test.c  -o  test            
+
+  -O1表示一级优化， -O2表示二级优化
+
+- 预处理
+
+  gcc  -E test.c  -o  test.i
+
+- 编译为汇编代码
+
+  gcc  -S  test.i  -o  test.s
+
+- 汇编
+
+  gcc  -c  test.s  -o  test.o
+
+- 连接
+
+  gcc  test.o   -o  test
+
+- 多个程序文件编译
+
+  gcc   -c  test.c  main.c
+
+  gcc  test.o  main.c  -o  main.exe
+
+  ./main
+  
+- 目标文件 反汇编为汇编语言程序
+
+  objdump  -d  test.o
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,329 @@
+[TOC]
+
+#### 位操作
+
+- 源程序
+
+```c
+#include <stdio.h>
+void main()
+{
+    int a = 5;
+    unsigned int b = 3;
+    short c = 5;
+    int d = 0;
+
+    a = ~a;
+    b = ~b;
+    c = ~c;
+    d = a & b;
+    d = a ^ b;
+    d = a | b;
+    return;
+}
+```
+
+- 生成可执行文件:
+
+  gcc -o bit bit.c
+
+  反汇编
+
+  objdump -d bit > bit.s
+
+  main函数对应的反汇编指令
+
+  ```c
+  00000000004004d2 <main>:
+    4004d2:	55                   	push   %rbp
+    4004d3:	48 89 e5             	mov    %rsp,%rbp
+    4004d6:	c7 45 fc 05 00 00 00 	movl   $0x5,-0x4(%rbp) // a 地址
+    4004dd:	c7 45 f8 03 00 00 00 	movl   $0x3,-0x8(%rbp) // b 地址
+    4004e4:	66 c7 45 f6 05 00    	movw   $0x5,-0xa(%rbp) // c 地址
+    4004ea:	c7 45 f0 00 00 00 00 	movl   $0x0,-0x10(%rbp)// d 地址
+    4004f1:	f7 55 fc             	notl   -0x4(%rbp) // 4字节取反指令
+    4004f4:	f7 55 f8             	notl   -0x8(%rbp)
+    4004f7:	66 f7 55 f6          	notw   -0xa(%rbp) // 2字节取反指令
+    4004fb:	8b 45 fc             	mov    -0x4(%rbp),%eax
+    4004fe:	23 45 f8             	and    -0x8(%rbp),%eax
+    400501:	89 45 f0             	mov    %eax,-0x10(%rbp)
+    400504:	8b 45 fc             	mov    -0x4(%rbp),%eax
+    400507:	33 45 f8             	xor    -0x8(%rbp),%eax
+    40050a:	89 45 f0             	mov    %eax,-0x10(%rbp)
+    40050d:	8b 45 fc             	mov    -0x4(%rbp),%eax
+    400510:	0b 45 f8             	or     -0x8(%rbp),%eax
+    400513:	89 45 f0             	mov    %eax,-0x10(%rbp)
+    400516:	90                   	nop
+    400517:	5d                   	pop    %rbp
+    400518:	c3                   	retq   
+    400519:	0f 1f 80 00 00 00 00 	nopl   0x0(%rax)
+  ```
+
+  生成可调试执行文件
+
+  gcc -g -o bit bit.c
+
+- GDB 调试
+
+  ```c
+  (gdb) p &a   //  查看变量a地址
+  $1 = (int *) 0x7fffffffd76c
+  (gdb) x/t 0x7fffffffd76c // 二进制查看a的值
+  0x7fffffffd76c: 00000000000000000000000000000101
+  (gdb) n
+  10          a = ~a;
+  (gdb) n
+  11          b = ~b;
+  (gdb) x/t 0x7fffffffd76c
+  0x7fffffffd76c: 11111111111111111111111111111010 // 执行完a取反变量a的二进制
+  (gdb) 
+  (gdb) p &b
+  $2 = (unsigned int *) 0x7fffffffd768
+  (gdb) x/t 0x7fffffffd768
+  0x7fffffffd768: 11111111111111111111111111111100 // b 二进制
+  (gdb) n
+  13          d = a & b;
+  (gdb) n
+  14          d = a ^ b;
+  (gdb) p &d
+  $3 = (int *) 0x7fffffffd760
+  (gdb) x/t 0x7fffffffd760
+  0x7fffffffd760: 11111111111111111111111111111000 // d = a&b 的二进制
+  (gdb) c
+  Continuing.
+  ```
+
+#### 逻辑操作
+
+- 源程序
+
+  ```c
+  #include <stdio.h>
+  
+  void main()
+  {
+      int a = 5;
+      unsigned int b = 5;
+      short c = 5;
+      int d = 0;
+  
+      a = !a;
+      b = !b;
+      c = !c;
+      d = a && b;
+      d = a || b;
+  
+      return;
+  }
+  ```
+
+- 反汇编后
+
+  ```c
+  00000000004004d2 <main>:
+    4004d2:	55                   	push   %rbp
+    4004d3:	48 89 e5             	mov    %rsp,%rbp
+    4004d6:	c7 45 fc 05 00 00 00 	movl   $0x5,-0x4(%rbp)  // a
+    4004dd:	c7 45 f8 05 00 00 00 	movl   $0x5,-0x8(%rbp)  // b
+    4004e4:	66 c7 45 f6 05 00    	movw   $0x5,-0xa(%rbp)  // c
+    4004ea:	c7 45 f0 00 00 00 00 	movl   $0x0,-0x10(%rbp) // d
+    
+    /* 四条语句完成 a =!a 操作 */
+    4004f1:	83 7d fc 00          	cmpl   $0x0,-0x4(%rbp)
+    4004f5:	0f 94 c0             	sete   %al
+    4004f8:	0f b6 c0             	movzbl %al,%eax
+    4004fb:	89 45 fc             	mov    %eax,-0x4(%rbp)
+        
+    4004fe:	83 7d f8 00          	cmpl   $0x0,-0x8(%rbp)
+    400502:	0f 94 c0             	sete   %al
+    400505:	0f b6 c0             	movzbl %al,%eax
+    400508:	89 45 f8             	mov    %eax,-0x8(%rbp)
+    40050b:	66 83 7d f6 00       	cmpw   $0x0,-0xa(%rbp)
+    400510:	0f 94 c0             	sete   %al
+    400513:	0f b6 c0             	movzbl %al,%eax
+    400516:	66 89 45 f6          	mov    %ax,-0xa(%rbp)
+        
+    /*  d = a&&b 操作*/
+    40051a:	83 7d fc 00          	cmpl   $0x0,-0x4(%rbp)
+    40051e:	74 0d                	je     40052d <main+0x5b>
+    400520:	83 7d f8 00          	cmpl   $0x0,-0x8(%rbp)
+    400524:	74 07                	je     40052d <main+0x5b>
+    400526:	b8 01 00 00 00       	mov    $0x1,%eax
+    40052b:	eb 05                	jmp    400532 <main+0x60>
+    40052d:	b8 00 00 00 00       	mov    $0x0,%eax
+    400532:	89 45 f0             	mov    %eax,-0x10(%rbp)
+    400535:	83 7d fc 00          	cmpl   $0x0,-0x4(%rbp)
+    400539:	75 06                	jne    400541 <main+0x6f>
+    40053b:	83 7d f8 00          	cmpl   $0x0,-0x8(%rbp)
+    40053f:	74 07                	je     400548 <main+0x76>
+    400541:	b8 01 00 00 00       	mov    $0x1,%eax
+    400546:	eb 05                	jmp    40054d <main+0x7b>
+    400548:	b8 00 00 00 00       	mov    $0x0,%eax
+    40054d:	89 45 f0             	mov    %eax,-0x10(%rbp)
+    400550:	90                   	nop
+    400551:	5d                   	pop    %rbp
+    400552:	c3                   	retq   
+    400553:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
+    40055a:	00 00 00 
+    40055d:	0f 1f 00             	nopl   (%rax)
+  ```
+
+- 结论
+
+  逻辑操作需要多条指令完成
+
+#### 移位操作
+
+- 源码
+
+  ```c
+  void main()
+  {
+      int a = 0x80000000;
+      unsigned int b = 0x80000000;
+      short c = 0x8000;
+      unsigned short d = 0x8000;
+  
+      a = a >> 4;
+      b = b >> 4;
+  
+      a = c;
+      a = d;
+      b = c;
+      b = d;
+      return;
+  }
+  ```
+
+- 反汇编
+
+  ```c
+  00000000004004d2 <main>:
+    4004d2:	55                   	push   %rbp
+    4004d3:	48 89 e5             	mov    %rsp,%rbp
+    4004d6:	c7 45 fc 00 00 00 80 	movl   $0x80000000,-0x4(%rbp)
+    4004dd:	c7 45 f8 00 00 00 80 	movl   $0x80000000,-0x8(%rbp)
+    4004e4:	66 c7 45 f6 00 80    	movw   $0x8000,-0xa(%rbp)
+    4004ea:	66 c7 45 f4 00 80    	movw   $0x8000,-0xc(%rbp)
+    4004f0:	c1 7d fc 04          	sarl   $0x4,-0x4(%rbp) // 执行 a = a>>4 算术右移
+    4004f4:	c1 6d f8 04          	shrl   $0x4,-0x8(%rbp) // 执行 b = b>>4 逻辑右移 
+    4004f8:	0f bf 45 f6          	movswl -0xa(%rbp),%eax // a = c 符号扩展
+    4004fc:	89 45 fc             	mov    %eax,-0x4(%rbp)
+    4004ff:	0f b7 45 f4          	movzwl -0xc(%rbp),%eax // a = d 零扩展
+    400503:	89 45 fc             	mov    %eax,-0x4(%rbp)
+    400506:	0f bf 45 f6          	movswl -0xa(%rbp),%eax // b = c 符号扩展
+    40050a:	89 45 f8             	mov    %eax,-0x8(%rbp)
+    40050d:	0f b7 45 f4          	movzwl -0xc(%rbp),%eax // b = d 零扩展
+    400511:	89 45 f8             	mov    %eax,-0x8(%rbp)
+    400514:	90                   	nop
+    400515:	5d                   	pop    %rbp
+    400516:	c3                   	retq   
+    400517:	66 0f 1f 84 00 00 00 	nopw   0x0(%rax,%rax,1)
+    40051e:	00 00 
+  ```
+
+- GDB调试
+
+  ```c++
+  (gdb) n
+  9           a = a >> 4;
+  (gdb) p &a
+  $1 = (int *) 0x7fffffffd76c
+  (gdb) x/t 0x7fffffffd76c
+  0x7fffffffd76c: 10000000000000000000000000000000  // a 未移位前
+  (gdb) n
+  10          b = b >> 4;
+  (gdb) x/t 0x7fffffffd76c
+  0x7fffffffd76c: 11111000000000000000000000000000 // 算术右移 
+  (gdb) 
+  (gdb) p &b
+  $2 = (unsigned int *) 0x7fffffffd768
+  (gdb) x/t 0x7fffffffd768
+  0x7fffffffd768: 10000000000000000000000000000000  // b
+  (gdb) n
+  12          a = c;
+  (gdb) x/t 0x7fffffffd768
+  0x7fffffffd768: 00001000000000000000000000000000 // b 逻辑右移四位后
+  (gdb) 
+  ```
+
+#### 浮点数误差
+
+- 源码
+
+  ```c++
+  #include <stdio.h>
+  
+  void main()
+  {
+      float sum = 0;
+      float a = 10.2, b = 9;
+      int i;
+  
+      printf("10.2 - 9 = %.10f\n", a - b); // 1.2
+      a = 100000.2;
+      printf("100000.2 - 9 = %.10f\n", a - b); // 99991.2
+  
+      for (i = 0; i < 4000000; i++)
+      {
+          sum += 0.1;
+      }
+      printf("sum = %f\n", sum);
+      return;
+  }
+  ```
+
+- 运行结果
+
+  ```
+  [root@zjkStu1 Chapt2]# gcc -o floatAdd floatAdd.c 
+  [root@zjkStu1 Chapt2]# ./floatAdd 
+  10.2 - 9 = 1.1999998093
+  100000.2 - 9 = 99991.2031250000
+  sum = 384524.781250
+  [root@zjkStu1 Chapt2]# 
+  ```
+
+- 原因
+
+  1 浮点数不能准确的表示
+
+  2 浮点数进行加减时要进行对阶操作
+
+- 解决方法  kahan算法
+
+  ```c++
+  #include <stdio.h>
+  
+  void main()
+  {
+      float sum = 0;
+      float sum1 = 0;
+      float c = 0;
+      float y, t;
+      int i;
+      for (i = 0; i < 4000000; i++)
+      {
+          sum1 += 0.1;
+      }
+      for (i = 0; i < 4000000; i++)
+      {
+          y = 0.1 - c;
+          t = sum + y;
+          c = (t - sum) - y;
+          sum = t;
+      }
+  
+      printf("sum1 = %f\n", sum1);
+      printf("sum=%f\n", sum);
+  }
+  /*  运行结果  */
+  [root@zjkStu1 Chapt2]# gcc -o kahanAdd kahanAdd.c 
+  [root@zjkStu1 Chapt2]# ./kahanAdd 
+  sum1 = 384524.781250
+  sum=400000.000000
+  [root@zjkStu1 Chapt2]# 
+  ```
+
+  
+
